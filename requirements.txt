@@ -1,0 +1,8 @@
+python-telegram-bot==22.2
+python-dotenv==1.1.1
+gspread==6.2.1
+google-auth==2.40.3
+cryptography==45.0.5
+httpx==0.28.1
+httpcore[asyncio]==1.0.9
+cffi==1.17.1    
