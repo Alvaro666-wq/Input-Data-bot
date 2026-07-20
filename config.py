@@ -1,20 +1,13 @@
+import json
+import tempfile
 import os
-from pathlib import Path
-from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent
+GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
-load_dotenv(BASE_DIR / ".env")
+temp = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
-GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
+temp.write(GOOGLE_CREDENTIALS_JSON.encode())
 
-if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN not found in .env")
+temp.close()
 
-if not SPREADSHEET_ID:
-    raise ValueError("SPREADSHEET_ID not found in .env")
-
-if not GOOGLE_CREDENTIALS:
-    raise ValueError("GOOGLE_CREDENTIALS not found in .env")    
+GOOGLE_CREDENTIALS = temp.name
