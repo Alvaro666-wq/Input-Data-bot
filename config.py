@@ -13,3 +13,5 @@ temp.close()
 GOOGLE_CREDENTIALS = temp.name
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
