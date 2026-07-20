@@ -11,3 +11,5 @@ temp.write(GOOGLE_CREDENTIALS_JSON.encode())
 temp.close()
 
 GOOGLE_CREDENTIALS = temp.name
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
