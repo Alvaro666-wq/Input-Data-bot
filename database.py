@@ -86,25 +86,34 @@ def add_rfc(rfc, bg_name, bg_placement):
 # SAVE TECHNICIAN INFO
 # ==================================================
 
-def save_technician(row, technician_name, technician_placement):
-
-    worksheet.update_cell(row, 4, technician_name)
-    worksheet.update_cell(row, 5, technician_placement)
-
-
 # ==================================================
-# SAVE MATERIAL ANSWERS
+# SAVE TECHNICIAN + MATERIALS
 # ==================================================
 
-def save_materials(row, answers):
+def update_row_answers(row, technician, placement, answers):
+    """
+    Column mapping
 
+    A = RFC
+    B = BG Name
+    C = BG Placement
+    D = Gudang Name
+    E = Gudang Placement
+    F onward = Material answers
+    """
+
+    # Save technician information
+    worksheet.update_cell(row, 4, technician)
+    worksheet.update_cell(row, 5, placement)
+
+    # Save material answers
     start_column = 6
 
-    for i, value in enumerate(answers):
+    for i, answer in enumerate(answers):
         worksheet.update_cell(
             row,
             start_column + i,
-            value,
+            answer,
         )
 
 
