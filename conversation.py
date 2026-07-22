@@ -19,14 +19,16 @@ from questions import QUESTIONS, TOTAL_QUESTIONS
 
 from keyboards import (
     ROLE_KEYBOARD,
+    PLACEMENT_KEYBOARD,
     FINISH_KEYBOARD,
+    PLACEMENTS,
 )
 
 # ==========================================================
 # Conversation States
 # ==========================================================
 
-ROLE, NAME, RFC, QUESTION, RESTART = range(5)
+ROLE, NAME, PLACEMENT, RFC, QUESTION, RESTART = range(6)
 
 # ==========================================================
 # /start
@@ -86,62 +88,50 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.message.text.strip()
 
     if not name:
-
         await update.message.reply_text(
             "Name cannot be empty.\nPlease enter your name."
         )
-
         return NAME
 
     context.user_data["name"] = name
 
     await update.message.reply_text(
-        "📄 Enter RFC ID:"
+        "📍 Please choose your Placement:",
+        reply_markup=PLACEMENT_KEYBOARD,
     )
 
-    return RFC
-
+    return PLACEMENT
 
 # ==========================================================
 # Enter RFC
 # ==========================================================
 
-async def ask_rfc(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def ask_placement(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    rfc = update.message.text.strip().upper()
+    placement = update.message.text.strip()
 
-    role = context.user_data["role"]
-
-    # ------------------------------------------
-    # Warehouse Engineer
-    # ------------------------------------------
-
-    if role == "🏭 Warehouse Engineer":
-
-        if rfc_exists(rfc):
-
-            await update.message.reply_text(
-                "❌ RFC already exists.\n\n"
-                "Please enter another RFC."
-            )
-
-            return RFC
-
-        add_rfc(
-            rfc,
-            context.user_data["name"],
-        )
-
+    if placement == "⬅ Back":
         await update.message.reply_text(
-            "✅ RFC successfully registered.\n\n"
-            "What would you like to do next?",
-            reply_markup=FINISH_KEYBOARD,
+            "Please choose your role.",
+            reply_markup=ROLE_KEYBOARD,
         )
+        return ROLE
 
-        context.user_data.clear()
+    if placement not in PLACEMENTS:
+        await update.message.reply_text(
+            "Please choose a placement using the buttons.",
+            reply_markup=PLACEMENT_KEYBOARD,
+        )
+        return PLACEMENT
 
-        return RESTART
+    context.user_data["placement"] = placement
 
+    await update.message.reply_text(
+        "📄 Enter RFC ID:",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+
+    return RFC
     # ------------------------------------------
     # Technician
     # ------------------------------------------
@@ -523,6 +513,13 @@ conversation_handler = ConversationHandler(
             MessageHandler(
                 filters.TEXT & ~filters.COMMAND,
                 ask_name,
+            )
+        ],
+
+        PLACEMENT: [
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND,
+                ask_placement,
             )
         ],
 
