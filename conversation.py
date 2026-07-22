@@ -13,13 +13,17 @@ from telegram.ext import (
 from database import (
     add_rfc,
     rfc_exists,
+    find_rfc,
+    save_technician,
+    save_materials,
 )
 
 from questions import QUESTIONS, TOTAL_QUESTIONS
 
 from keyboards import (
     ROLE_KEYBOARD,
-    PLACEMENT_KEYBOARD,
+    PLACEMENT_BG_KEYBOARD,
+    PLACEMENT_GUDANG_KEYBOARD,
     FINISH_KEYBOARD,
     PLACEMENTS,
 )
@@ -29,6 +33,9 @@ from keyboards import (
 # ==========================================================
 
 ROLE, NAME, PLACEMENT, RFC, QUESTION, RESTART = range(6)
+
+ROLE_ENGINEER = "🏭 Warehouse Engineer"
+ROLE_TECHNICIAN = "🛠 Technician"
 
 # ==========================================================
 # /start
@@ -58,8 +65,8 @@ async def choose_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
     role = update.message.text.strip()
 
     if role not in [
-        "🏭 Warehouse Engineer",
-        "🛠 Technician",
+        ROLE_ENGINEER,
+        ROLE_TECHNICIAN,
     ]:
 
         await update.message.reply_text(
@@ -71,8 +78,13 @@ async def choose_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["role"] = role
 
+    if role == ROLE_ENGINEER:
+        prompt = "👤 Enter BG Name:"
+    else:
+        prompt = "👤 Enter Gudang Name:"
+
     await update.message.reply_text(
-        "👤 Enter Warehouse:",
+        prompt,
         reply_markup=ReplyKeyboardRemove(),
     )
 
@@ -95,15 +107,21 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["name"] = name
 
+    if context.user_data["role"] == ROLE_ENGINEER:
+        keyboard = PLACEMENT_BG_KEYBOARD
+    else:
+        keyboard = PLACEMENT_GUDANG_KEYBOARD
+
     await update.message.reply_text(
         "📍 Please choose your Placement:",
-        reply_markup=PLACEMENT_KEYBOARD,
+        reply_markup=keyboard,
     )
 
     return PLACEMENT
 
+
 # ==========================================================
-# Enter RFC
+# Choose Placement
 # ==========================================================
 
 async def ask_placement(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -118,9 +136,15 @@ async def ask_placement(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ROLE
 
     if placement not in PLACEMENTS:
+
+        if context.user_data["role"] == ROLE_ENGINEER:
+            keyboard = PLACEMENT_BG_KEYBOARD
+        else:
+            keyboard = PLACEMENT_GUDANG_KEYBOARD
+
         await update.message.reply_text(
             "Please choose a placement using the buttons.",
-            reply_markup=PLACEMENT_KEYBOARD,
+            reply_markup=keyboard,
         )
         return PLACEMENT
 
@@ -132,8 +156,57 @@ async def ask_placement(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     return RFC
+
+
+# ==========================================================
+# Enter RFC
+# ==========================================================
+
+async def ask_rfc(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    rfc = update.message.text.strip()
+
+    if not rfc:
+        await update.message.reply_text(
+            "RFC cannot be empty.\nPlease enter the RFC ID:"
+        )
+        return RFC
+
+    context.user_data["rfc"] = rfc
+
     # ------------------------------------------
-    # Technician
+    # Warehouse Engineer -> create new RFC entry
+    # ------------------------------------------
+
+    if context.user_data["role"] == ROLE_ENGINEER:
+
+        if rfc_exists(rfc):
+
+            await update.message.reply_text(
+                "❌ This RFC already exists.\n\n"
+                "Please enter a different RFC ID:"
+            )
+
+            return RFC
+
+        add_rfc(
+            rfc=rfc,
+            bg_name=context.user_data["name"],
+            bg_placement=context.user_data["placement"],
+        )
+
+        await update.message.reply_text(
+            "✅ RFC registered successfully!\n\n"
+            "Choose your next action.",
+            reply_markup=FINISH_KEYBOARD,
+        )
+
+        context.user_data.clear()
+
+        return RESTART
+
+    # ------------------------------------------
+    # Technician -> fill in material report
     # ------------------------------------------
 
     if not rfc_exists(rfc):
@@ -148,7 +221,6 @@ async def ask_placement(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return RESTART
 
-    context.user_data["rfc"] = rfc
     context.user_data["answers"] = []
     context.user_data["question_index"] = 0
 
@@ -161,10 +233,6 @@ async def ask_placement(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return QUESTION
 
-from database import (
-    find_rfc,
-    update_row_answers,
-)
 
 # ==========================================================
 # Ask Material Questions
@@ -225,11 +293,18 @@ async def finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             return RESTART
 
-        # Save technician + all answers
+        # Save technician name + placement (Placement Gudang)
 
-        update_row_answers(
+        save_technician(
             row=row,
-            technician=context.user_data["name"],
+            technician_name=context.user_data["name"],
+            technician_placement=context.user_data["placement"],
+        )
+
+        # Save all material answers
+
+        save_materials(
+            row=row,
             answers=context.user_data["answers"],
         )
 
@@ -324,168 +399,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return ConversationHandler.END
 
-from database import (
-    find_rfc,
-    update_row_answers,
-)
-
-# ==========================================================
-# Ask Material Questions
-# ==========================================================
-
-async def ask_questions(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    answer = update.message.text.strip()
-
-    context.user_data["answers"].append(answer)
-
-    context.user_data["question_index"] += 1
-
-    index = context.user_data["question_index"]
-
-    # ------------------------------------------------------
-    # Next Question
-    # ------------------------------------------------------
-
-    if index < TOTAL_QUESTIONS:
-
-        question = QUESTIONS[index][0]
-
-        await update.message.reply_text(
-            f"Question {index + 1}/{TOTAL_QUESTIONS}\n\n"
-            f"{question}:"
-        )
-
-        return QUESTION
-
-    # ------------------------------------------------------
-    # Finished
-    # ------------------------------------------------------
-
-    return await finish(update, context)
-
-
-# ==========================================================
-# Finish Report
-# ==========================================================
-
-async def finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    try:
-
-        row = find_rfc(
-            context.user_data["rfc"]
-        )
-
-        if row is None:
-
-            await update.message.reply_text(
-                "❌ RFC no longer exists.",
-                reply_markup=FINISH_KEYBOARD,
-            )
-
-            context.user_data.clear()
-
-            return RESTART
-
-        # Save technician + all answers
-
-        update_row_answers(
-            row=row,
-            technician=context.user_data["name"],
-            answers=context.user_data["answers"],
-        )
-
-        await update.message.reply_text(
-            "✅ Report submitted successfully!\n\n"
-            "Choose your next action.",
-            reply_markup=FINISH_KEYBOARD,
-        )
-
-        context.user_data.clear()
-
-        return RESTART
-
-    except Exception as e:
-
-        await update.message.reply_text(
-            f"❌ Failed to save report.\n\n{e}",
-            reply_markup=FINISH_KEYBOARD,
-        )
-
-        context.user_data.clear()
-
-        return RESTART
-
-
-# ==========================================================
-# Restart Menu
-# ==========================================================
-
-async def restart_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    choice = update.message.text.strip()
-
-    # ------------------------------------
-    # New Report
-    # ------------------------------------
-
-    if choice == "🔄 New Report":
-
-        context.user_data.clear()
-
-        await update.message.reply_text(
-            "📦 *Fieldwork Material Bot*\n\n"
-            "Please choose your role.",
-            parse_mode="Markdown",
-            reply_markup=ROLE_KEYBOARD,
-        )
-
-        return ROLE
-
-    # ------------------------------------
-    # Exit
-    # ------------------------------------
-
-    if choice == "❌ Exit":
-
-        context.user_data.clear()
-
-        await update.message.reply_text(
-            "👋 Thank you for using Fieldwork Material Bot.\n\n"
-            "Type /start whenever you want to submit another report.",
-            reply_markup=ReplyKeyboardRemove(),
-        )
-
-        return ConversationHandler.END
-
-    # ------------------------------------
-    # Invalid Option
-    # ------------------------------------
-
-    await update.message.reply_text(
-        "Please use one of the buttons below.",
-        reply_markup=FINISH_KEYBOARD,
-    )
-
-    return RESTART
-
-
-# ==========================================================
-# Cancel
-# ==========================================================
-
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    context.user_data.clear()
-
-    await update.message.reply_text(
-        "❌ Operation cancelled.\n\n"
-        "Type /start to begin again.",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-
-    return ConversationHandler.END
 
 # ==========================================================
 # Conversation Handler
