@@ -1,11 +1,12 @@
 import gspread
 from google.oauth2.service_account import Credentials
 
-from config import SPREADSHEET_ID, GOOGLE_CREDENTIALS
+from config import SPREADSHEET_ID
+from config import GOOGLE_CREDENTIALS
 
-# ==========================================================
-# GOOGLE SHEETS CONNECTION
-# ==========================================================
+# ==================================================
+# GOOGLE AUTHENTICATION
+# ==================================================
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -21,179 +22,116 @@ client = gspread.authorize(creds)
 
 worksheet = client.open_by_key(SPREADSHEET_ID).sheet1
 
-# ==========================================================
-# SHEET STRUCTURE
-# ==========================================================
-#
-# Column A = RFC
-# Column B = Warehouse Engineer
-# Column C = Technician
-# Column D = Drop Core
-# Column E = Precon50
-# Column F = Precon60
-# Column G = Precon70
-# Column H = Precon75
-# Column I = Precon80
-# Column J = Precon85
-# Column K = Precon100
-# Column L = Precon120
-# Column M = Precon125
-# Column N = Precon130
-# Column O = Precon135
-# Column P = Precon150
-# Column Q = Precon200
-# Column R = Precon250
-# Column S = Clamp-hook
-# Column T = S-Clamp S
-# Column U = SOC-ILS
-# Column V = SOC-FUJ
-# Column W = SOC-SUM
-# Column X = SN ONT
-# Column Y = SN STB
-#
-# ==========================================================
-
-
-# ==========================================================
-# READ FUNCTIONS
-# ==========================================================
+# ==================================================
+# DATABASE FUNCTIONS
+# ==================================================
 
 def get_all_data():
-    """Return all rows as dictionaries."""
     return worksheet.get_all_records()
 
 
-def get_all_values():
-    """Return all sheet values."""
-    return worksheet.get_all_values()
-
-
-def find_rfc(rfc: str):
-    """
-    Return row number of RFC.
-    Return None if RFC does not exist.
-    """
-
+def find_rfc(rfc):
     values = worksheet.col_values(1)
 
-    for row, value in enumerate(values, start=1):
-        if value.strip() == rfc.strip():
-            return row
+    for i, value in enumerate(values, start=1):
+        if value == rfc:
+            return i
 
     return None
 
 
-def rfc_exists(rfc: str):
+def rfc_exists(rfc):
     return find_rfc(rfc) is not None
 
 
-def get_row(row: int):
-    return worksheet.row_values(row)
+# ==================================================
+# CREATE NEW RFC
+# ==================================================
 
-
-# ==========================================================
-# CREATE FUNCTIONS
-# ==========================================================
-
-def add_rfc(rfc: str, warehouse_name: str):
-    """
-    Add new RFC row.
-    """
+def add_rfc(rfc, bg_name, bg_placement):
 
     worksheet.append_row([
-        rfc,               # A
-        warehouse_name,    # B
-        "",                # C Technician
-        "",                # D Drop Core
-        "",                # E Precon50
-        "",                # F Precon60
-        "",                # G Precon70
-        "",                # H Precon75
-        "",                # I Precon80
-        "",                # J Precon85
-        "",                # K Precon100
-        "",                # L Precon120
-        "",                # M Precon125
-        "",                # N Precon130
-        "",                # O Precon135
-        "",                # P Precon150
-        "",                # Q Precon200
-        "",                # R Precon250
-        "",                # S Clamp-hook
-        "",                # T S-Clamp S
-        "",                # U SOC-ILS
-        "",                # V SOC-FUJ
-        "",                # W SOC-SUM
-        "",                # X SN ONT
-        "",                # Y SN STB
+        rfc,            # A
+        bg_name,        # B
+        bg_placement,   # C
+        "",             # D Nama Gudang
+        "",             # E Placement Gudang
+
+        "",  # Drop Core
+        "",  # Precon50
+        "",  # Precon60
+        "",  # Precon70
+        "",  # Precon75
+        "",  # Precon80
+        "",  # Precon85
+        "",  # Precon100
+        "",  # Precon120
+        "",  # Precon125
+        "",  # Precon130
+        "",  # Precon135
+        "",  # Precon150
+        "",  # Precon200
+        "",  # Precon250
+        "",  # Clamp-hook
+        "",  # S-Clamp S
+        "",  # SOC-ILS
+        "",  # SOC-FUJ
+        "",  # SOC-SUM
+        "",  # SN ONT
+        "",  # SN STB
     ])
 
 
-# ==========================================================
-# UPDATE FUNCTIONS
-# ==========================================================
+# ==================================================
+# SAVE TECHNICIAN INFO
+# ==================================================
 
-def update_cell(row: int, col: int, value):
-    """
-    Update one cell.
-    """
-    worksheet.update_cell(row, col, value)
+def save_technician(row, technician_name, technician_placement):
+
+    worksheet.update_cell(row, 4, technician_name)
+    worksheet.update_cell(row, 5, technician_placement)
 
 
-def update_row_answers(row: int, technician: str, answers: list):
-    """
-    Update technician name and all material answers.
-    """
+# ==================================================
+# SAVE MATERIAL ANSWERS
+# ==================================================
 
-    # Column C
-    worksheet.update_cell(row, 3, technician)
+def save_materials(row, answers):
 
-    # Column D onwards
-    for i, answer in enumerate(answers):
+    start_column = 6
+
+    for i, value in enumerate(answers):
         worksheet.update_cell(
             row,
-            4 + i,
-            answer,
+            start_column + i,
+            value,
         )
 
 
-# ==========================================================
-# DELETE FUNCTIONS
-# ==========================================================
+# ==================================================
+# UPDATE CELL
+# ==================================================
 
-def delete_rfc(rfc: str):
-    """
-    Delete RFC row.
-    """
-
-    row = find_rfc(rfc)
-
-    if row:
-        worksheet.delete_rows(row)
-        return True
-
-    return False
+def update_cell(row, col, value):
+    worksheet.update_cell(row, col, value)
 
 
-# ==========================================================
-# DEBUG
-# ==========================================================
+def get_row(row):
+    return worksheet.row_values(row)
+
 
 def print_sheet():
     for row in worksheet.get_all_values():
         print(row)
 
 
-# ==========================================================
-# TEST
-# ==========================================================
+# ==================================================
+# TEST CONNECTION
+# ==================================================
 
 if __name__ == "__main__":
 
-    print("=" * 50)
-    print("Google Sheets Connected Successfully")
-    print("=" * 50)
-
+    print("Connected Successfully!")
     print("Worksheet :", worksheet.title)
-    print("Rows      :", worksheet.row_count)
-    print("Columns   :", worksheet.col_count)
+    print("Rows :", worksheet.row_count)
+    print("Columns :", worksheet.col_count)
