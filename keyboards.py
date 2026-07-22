@@ -10,12 +10,11 @@ ROLE_KEYBOARD = ReplyKeyboardMarkup(
         ["🛠 Technician"],
     ],
     resize_keyboard=True,
-    one_time_keyboard=False,
     is_persistent=True,
 )
 
 # =====================================================
-# PLACEMENT LIST
+# PLACEMENTS
 # =====================================================
 
 PLACEMENTS = [
@@ -44,21 +43,16 @@ PLACEMENTS = [
     "SO SIBOLGA",
 ]
 
-# =====================================================
-# BUILD PLACEMENT KEYBOARD (2 BUTTONS PER ROW)
-# =====================================================
-
 placement_buttons = []
 
 for i in range(0, len(PLACEMENTS), 2):
     placement_buttons.append(PLACEMENTS[i:i + 2])
 
-placement_buttons.append(["❌ Cancel"])
+placement_buttons.append(["⬅ Back"])
 
 PLACEMENT_KEYBOARD = ReplyKeyboardMarkup(
     placement_buttons,
     resize_keyboard=True,
-    one_time_keyboard=False,
     is_persistent=True,
 )
 
@@ -72,6 +66,5 @@ FINISH_KEYBOARD = ReplyKeyboardMarkup(
         ["❌ Exit"],
     ],
     resize_keyboard=True,
-    one_time_keyboard=False,
     is_persistent=True,
 )
