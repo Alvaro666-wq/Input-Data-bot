@@ -57,6 +57,30 @@ PLACEMENT_KEYBOARD = ReplyKeyboardMarkup(
 )
 
 # =====================================================
+# PLACEMENT BG
+# (used when a Warehouse Engineer selects their own
+# placement — saved as "Placement BG")
+# =====================================================
+
+PLACEMENT_BG_KEYBOARD = ReplyKeyboardMarkup(
+    placement_buttons,
+    resize_keyboard=True,
+    is_persistent=True,
+)
+
+# =====================================================
+# PLACEMENT GUDANG
+# (used when a Technician selects the warehouse
+# placement — saved as "Placement Gudang")
+# =====================================================
+
+PLACEMENT_GUDANG_KEYBOARD = ReplyKeyboardMarkup(
+    placement_buttons,
+    resize_keyboard=True,
+    is_persistent=True,
+)
+
+# =====================================================
 # FINISH KEYBOARD
 # =====================================================
 
