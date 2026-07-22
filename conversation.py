@@ -70,7 +70,7 @@ async def choose_role(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["role"] = role
 
     await update.message.reply_text(
-        "👤 Enter Witel:",
+        "👤 Enter Warehouse:",
         reply_markup=ReplyKeyboardRemove(),
     )
 
