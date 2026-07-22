@@ -6,8 +6,8 @@ from telegram import ReplyKeyboardMarkup
 
 ROLE_KEYBOARD = ReplyKeyboardMarkup(
     [
-        ["Warehouse Engineer"],
-        ["Technician"],
+        ["🏭 Warehouse Engineer"],
+        ["🛠 Technician"],
     ],
     resize_keyboard=True,
     one_time_keyboard=False,
