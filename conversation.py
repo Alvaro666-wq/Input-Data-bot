@@ -295,16 +295,10 @@ async def finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Save technician name + placement (Placement Gudang)
 
-        save_technician(
+        update_row_answers(
             row=row,
-            technician_name=context.user_data["name"],
-            technician_placement=context.user_data["placement"],
-        )
-
-        # Save all material answers
-
-        save_materials(
-            row=row,
+            technician=context.user_data["name"],
+            placement=context.user_data["placement"],
             answers=context.user_data["answers"],
         )
 
